@@ -1,65 +1,92 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { getCategories, getCountries, getChannelsByCategory } from '@/lib/channels';
+import ChannelCard from '@/components/ChannelCard';
 
-export default function Home() {
+export default async function Home() {
+  const [categories, countries, sportsChannels] = await Promise.all([
+    getCategories(),
+    getCountries(),
+    getChannelsByCategory('sports'),
+  ]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-white"><span className="text-red-500">Khola TV</span> Live Channels</h1>
+          <Link href="/channels/sports" className="text-red-500 hover:text-red-400 text-sm font-medium">
+            View All &rarr;
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+          {sportsChannels.slice(0, 16).map((ch) => (
+            <ChannelCard key={ch.id} channel={ch} />
+          ))}
         </div>
-      </main>
+      </section>
+
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">
+            Browse by <span className="text-red-500">Category</span>
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {categories.slice(0, 18).map((cat) => (
+            <Link
+              key={cat.key}
+              href={`/channels/${cat.key}`}
+              className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-red-500 rounded-xl p-5 text-center transition-all group"
+            >
+              <div className="text-3xl mb-2">
+                {cat.key === 'sports' && '⚽'}
+                {cat.key === 'news' && '📰'}
+                {cat.key === 'entertainment' && '🎬'}
+                {cat.key === 'music' && '🎵'}
+                {cat.key === 'movies' && '🎥'}
+                {cat.key === 'kids' && '🧒'}
+                {cat.key === 'documentary' && '📺'}
+                {cat.key === 'religious' && '🕊️'}
+                {cat.key === 'education' && '📚'}
+                {cat.key === 'business' && '💼'}
+                {cat.key === 'general' && '📡'}
+                {cat.key === 'lifestyle' && '🌟'}
+                {cat.key === 'science' && '🔬'}
+                {cat.key === 'travel' && '✈️'}
+                {cat.key === 'art' && '🎨'}
+                {cat.key === 'series' && '📺'}
+                {cat.key === 'anime' && '🎭'}
+                {cat.key === 'shop' && '🛒'}
+              </div>
+              <h3 className="text-white font-semibold text-sm group-hover:text-red-400 transition-colors">
+                {cat.name}
+              </h3>
+              <p className="text-gray-500 text-xs mt-1">{cat.count} channels</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">
+            Browse by <span className="text-red-500">Country</span>
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+          {countries.slice(0, 24).map((c) => (
+            <Link
+              key={c.code}
+              href={`/countries/${c.code.toLowerCase()}`}
+              className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-red-500 rounded-lg p-3 text-center transition-all"
+            >
+              <span className="text-2xl">{c.flag}</span>
+              <h3 className="text-white text-sm font-medium mt-1 truncate">{c.name}</h3>
+              <p className="text-gray-500 text-xs">{c.count} channels</p>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
