@@ -15,18 +15,26 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
 
   if (channels.length === 0) notFound();
 
+  const sorted = [...channels].sort((a, b) => {
+    if (a.country === 'BD' && b.country !== 'BD') return -1;
+    if (a.country !== 'BD' && b.country === 'BD') return 1;
+    if (a.country === 'IN' && b.country !== 'IN') return -1;
+    if (a.country !== 'IN' && b.country === 'IN') return 1;
+    return 0;
+  });
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <Link href="/" className="text-gray-400 hover:text-white text-sm">&larr; Back to Home</Link>
-        <h1 className="text-3xl font-bold text-white mt-2">
-          <span className="text-red-500">Khola TV</span> {catName} Channels
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="mb-4 sm:mb-6">
+        <Link href="/" className="text-gray-400 hover:text-white text-xs sm:text-sm">&larr; Back</Link>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2">
+          <span className="text-red-500">Khola TV</span> {catName}
         </h1>
-        <p className="text-gray-400 mt-1">{channels.length} channels available &mdash; by MD Leon</p>
+        <p className="text-gray-400 text-xs sm:text-sm mt-1">{channels.length} channels</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-        {channels.map((ch) => (
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-4">
+        {sorted.map((ch) => (
           <ChannelCard key={ch.id} channel={ch} />
         ))}
       </div>

@@ -13,16 +13,17 @@ export default async function CountryPage({ params }: { params: Promise<{ countr
   const flag = getCountryFlag(country);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <Link href="/" className="text-gray-400 hover:text-white text-sm">&larr; Back to Home</Link>
-        <h1 className="text-3xl font-bold text-white mt-2">
-          {flag} <span className="text-red-500">Khola TV</span> {countryName} Channels
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="mb-4 sm:mb-6">
+        <Link href="/" className="text-gray-400 hover:text-white text-xs sm:text-sm">&larr; Back</Link>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mt-2 flex items-center gap-2">
+          <span>{flag}</span>
+          <span className="text-red-500">Khola TV</span> {countryName}
         </h1>
-        <p className="text-gray-400 mt-1">{channels.length} channels available &mdash; by MD Leon</p>
+        <p className="text-gray-400 text-xs sm:text-sm mt-1">{channels.length} channels</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-4">
         {channels.map((ch) => (
           <ChannelCard key={ch.id} channel={ch} />
         ))}

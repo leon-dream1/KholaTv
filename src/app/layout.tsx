@@ -32,8 +32,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-gray-950 text-white">
         <Navbar />
         <main className="flex-1">{children}</main>
-        <footer className="border-t border-gray-800 py-6 text-center text-gray-500 text-sm">
-          <p>Khola TV &copy; {new Date().getFullYear()} &mdash; Created by <span className="text-red-400 font-medium">MD Leon</span> &mdash; Powered by iptv-org</p>
+        <footer className="border-t border-gray-800 py-4 sm:py-6 px-4 text-center text-gray-500 text-[10px] sm:text-xs">
+          <p>Khola TV &copy; {new Date().getFullYear()} &mdash; Made with ❤️ by <span className="text-red-400 font-medium">MD Leon</span> &mdash; Data from iptv-org</p>
+          <p className="mt-1 opacity-60">🇧🇩 থেকে সারা বিশ্বের চ্যানেল দেখুন | Watch 84,000+ live TV channels</p>
         </footer>
       </body>
     </html>

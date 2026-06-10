@@ -39,16 +39,37 @@ export async function fetchAllChannels(): Promise<Channel[]> {
   return cachePromise;
 }
 
+export function sortChannelsByRegion(channels: Channel[]): Channel[] {
+  return [...channels].sort((a, b) => {
+    if (a.country === 'BD' && b.country !== 'BD') return -1;
+    if (a.country !== 'BD' && b.country === 'BD') return 1;
+    if (a.country === 'IN' && b.country !== 'IN') return -1;
+    if (a.country !== 'IN' && b.country === 'IN') return 1;
+    return 0;
+  });
+}
+
+export async function getBangladeshiChannels(): Promise<Channel[]> {
+  const all = await fetchAllChannels();
+  return all.filter((ch) => ch.country === 'BD');
+}
+
+export async function getIndianChannels(): Promise<Channel[]> {
+  const all = await fetchAllChannels();
+  return all.filter((ch) => ch.country === 'IN');
+}
+
 export async function clientSearchChannels(query: string): Promise<Channel[]> {
   const channels = await fetchAllChannels();
   const q = query.toLowerCase();
-  return channels.filter(
+  const filtered = channels.filter(
     (ch) =>
       ch.name.toLowerCase().includes(q) ||
       ch.category.toLowerCase().includes(q) ||
       ch.country.toLowerCase().includes(q) ||
       ch.language.toLowerCase().includes(q)
   );
+  return sortChannelsByRegion(filtered);
 }
 
 export async function getTotalChannelCount(): Promise<number> {

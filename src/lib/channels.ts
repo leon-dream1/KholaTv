@@ -129,8 +129,14 @@ export async function getCountries(): Promise<{ code: string; name: string; coun
       }
     })
   );
-  return counts.filter((c): c is NonNullable<typeof c> => c !== null && c.count > 0)
-    .sort((a, b) => b.count - a.count);
+  const filtered = counts.filter((c): c is NonNullable<typeof c> => c !== null && c.count > 0);
+  return filtered.sort((a, b) => {
+    if (a.code === 'BD') return -1;
+    if (b.code === 'BD') return 1;
+    if (a.code === 'IN') return -1;
+    if (b.code === 'IN') return 1;
+    return b.count - a.count;
+  });
 }
 
 const SEARCH_CATEGORIES = ['sports', 'news', 'entertainment', 'general', 'music', 'movies', 'documentary'];

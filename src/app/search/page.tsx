@@ -4,7 +4,7 @@ import { use, Suspense } from 'react';
 import React from 'react';
 import ChannelCard from '@/components/ChannelCard';
 import { Channel } from '@/lib/types';
-import { clientSearchChannels } from '@/lib/client-channels';
+import { clientSearchChannels, sortChannelsByRegion } from '@/lib/client-channels';
 
 function SearchResults({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = use(searchParams);
@@ -27,7 +27,7 @@ function ChannelList({ query }: { query: string }) {
   React.useEffect(() => {
     setLoading(true);
     clientSearchChannels(query).then((results) => {
-      setChannels(results);
+      setChannels(sortChannelsByRegion(results));
       setLoading(false);
     });
   }, [query]);
