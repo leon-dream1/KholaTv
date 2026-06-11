@@ -4,15 +4,43 @@ import { Channel } from './types';
 import { parseM3U } from './m3u-parser';
 
 const INDEX_URL = 'https://iptv-org.github.io/iptv/index.m3u';
+const CACHE_KEY = 'kholatv_channels';
+const CACHE_TIME_KEY = 'kholatv_channels_time';
+const CACHE_TTL = 30 * 60 * 1000;
 
 let cachedChannels: Channel[] | null = null;
 let cachePromise: Promise<Channel[]> | null = null;
 
+function loadFromStorage(): Channel[] | null {
+  try {
+    const stored = localStorage.getItem(CACHE_KEY);
+    const time = localStorage.getItem(CACHE_TIME_KEY);
+    if (stored && time && Date.now() - Number(time) < CACHE_TTL) {
+      return JSON.parse(stored);
+    }
+  } catch {}
+  return null;
+}
+
+function saveToStorage(channels: Channel[]) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(channels));
+    localStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
+  } catch {}
+}
+
 export async function fetchAllChannels(): Promise<Channel[]> {
   if (cachedChannels) return cachedChannels;
+
+  const stored = loadFromStorage();
+  if (stored) {
+    cachedChannels = stored;
+    return stored;
+  }
+
   if (cachePromise) return cachePromise;
 
-  cachePromise = fetch(INDEX_URL)
+  cachePromise = fetch(INDEX_URL, { cache: 'force-cache' })
     .then((res) => {
       if (!res.ok) throw new Error('Failed to fetch index.m3u');
       return res.text();
@@ -30,6 +58,7 @@ export async function fetchAllChannels(): Promise<Channel[]> {
         tvgId: ch.tvgId,
       }));
       cachedChannels = channels;
+      saveToStorage(channels);
       return channels;
     })
     .finally(() => {
@@ -37,6 +66,12 @@ export async function fetchAllChannels(): Promise<Channel[]> {
     });
 
   return cachePromise;
+}
+
+export function preloadAllChannels(): void {
+  if (!cachedChannels && !cachePromise) {
+    cachePromise = fetchAllChannels();
+  }
 }
 
 export function sortChannelsByRegion(channels: Channel[]): Channel[] {

@@ -46,8 +46,30 @@ const FLAG_MAP: Record<string, string> = {
   ZA: '🇿🇦', NG: '🇳🇬', KE: '🇰🇪', GH: '🇬🇭',
 };
 
-const cache = new Map<string, { data: Channel[]; timestamp: number }>();
-const CACHE_TTL = 10 * 60 * 1000;
+const cache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_TTL = 60 * 60 * 1000;
+
+const PENDING = new Map<string, Promise<unknown>>();
+
+async function cachedFetch<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.data as T;
+
+  if (PENDING.has(key)) return PENDING.get(key) as Promise<T>;
+
+  const promise = fetcher()
+    .then((data) => {
+      cache.set(key, { data, timestamp: Date.now() });
+      PENDING.delete(key);
+      return data;
+    })
+    .catch((err) => {
+      PENDING.delete(key);
+      throw err;
+    });
+  PENDING.set(key, promise);
+  return promise;
+}
 
 export function getCountryName(code: string): string {
   return COUNTRY_NAMES[code.toUpperCase()] || code;
@@ -61,20 +83,9 @@ export function getCategoryDisplayName(key: string): string {
   return CATEGORY_DISPLAY[key.toLowerCase()] || key.charAt(0).toUpperCase() + key.slice(1);
 }
 
-async function fetchM3U(path: string): Promise<Channel[]> {
-  const cached = cache.get(path);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
-
-  const url = `${BASE_URL}${path}`;
-  const res = await fetch(url, { next: { revalidate: 600 } });
-  if (!res.ok) throw new Error(`Failed to fetch ${url}`);
-
-  const text = await res.text();
+function parseChannels(text: string): Channel[] {
   const parsed = parseM3U(text);
-
-  const channels: Channel[] = parsed.map((ch, i) => ({
+  return parsed.map((ch, i) => ({
     id: `${ch.tvgId || ch.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${i}`,
     name: ch.name,
     url: ch.url,
@@ -84,9 +95,23 @@ async function fetchM3U(path: string): Promise<Channel[]> {
     language: ch.tvgLanguage,
     tvgId: ch.tvgId,
   }));
+}
 
-  cache.set(path, { data: channels, timestamp: Date.now() });
-  return channels;
+async function fetchM3U(path: string): Promise<Channel[]> {
+  return cachedFetch(`m3u:${path}`, async () => {
+    const url = `${BASE_URL}${path}`;
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+    const text = await res.text();
+    return parseChannels(text);
+  }) as Promise<Channel[]>;
+}
+
+async function fetchCount(path: string): Promise<number> {
+  return cachedFetch(`count:${path}`, async () => {
+    const channels = await fetchM3U(path);
+    return channels.length;
+  }) as Promise<number>;
 }
 
 export async function getChannelsByCategory(category: string): Promise<Channel[]> {
@@ -101,8 +126,8 @@ export async function getCategories(): Promise<{ name: string; key: string; coun
   const counts = await Promise.all(
     KNOWN_CATEGORIES.map(async (key) => {
       try {
-        const channels = await fetchM3U(`/categories/${key}.m3u`);
-        return { name: getCategoryDisplayName(key), key, count: channels.length };
+        const count = await fetchCount(`/categories/${key}.m3u`);
+        return { name: getCategoryDisplayName(key), key, count };
       } catch {
         return { name: getCategoryDisplayName(key), key, count: 0 };
       }
@@ -111,26 +136,24 @@ export async function getCategories(): Promise<{ name: string; key: string; coun
   return counts.filter((c) => c.count > 0).sort((a, b) => b.count - a.count);
 }
 
-const ALL_COUNTRY_CODES = Object.keys(COUNTRY_NAMES);
-
 export async function getCountries(): Promise<{ code: string; name: string; count: number; flag: string }[]> {
-  const counts = await Promise.all(
-    ALL_COUNTRY_CODES.map(async (code) => {
-      try {
-        const channels = await fetchM3U(`/countries/${code.toLowerCase()}.m3u`);
-        return {
-          code,
-          name: COUNTRY_NAMES[code],
-          count: channels.length,
-          flag: FLAG_MAP[code] || '🌍',
-        };
-      } catch {
-        return null;
-      }
+  const codes = ['BD', 'IN', 'US', 'GB', 'CA', 'AU', 'PK', 'NP', 'SA', 'AE',
+    'DE', 'FR', 'IT', 'ES', 'NL', 'RU', 'JP', 'CN', 'KR', 'BR', 'AR', 'MX',
+    'ZA', 'NG', 'TR', 'EG', 'MY', 'SG', 'LK', 'KE', 'GH'];
+
+  const results = await Promise.allSettled(
+    codes.map(async (code) => {
+      const count = await fetchCount(`/countries/${code.toLowerCase()}.m3u`);
+      return { code, name: COUNTRY_NAMES[code], count, flag: FLAG_MAP[code] || '🌍' };
     })
   );
-  const filtered = counts.filter((c): c is NonNullable<typeof c> => c !== null && c.count > 0);
-  return filtered.sort((a, b) => {
+
+  const valid = results
+    .filter((r): r is PromiseFulfilledResult<{ code: string; name: string; count: number; flag: string }> => r.status === 'fulfilled')
+    .map((r) => r.value)
+    .filter((c) => c.count > 0);
+
+  return valid.sort((a, b) => {
     if (a.code === 'BD') return -1;
     if (b.code === 'BD') return 1;
     if (a.code === 'IN') return -1;
@@ -139,12 +162,10 @@ export async function getCountries(): Promise<{ code: string; name: string; coun
   });
 }
 
-const SEARCH_CATEGORIES = ['sports', 'news', 'entertainment', 'general', 'music', 'movies', 'documentary'];
-
 export async function searchChannels(query: string): Promise<Channel[]> {
   const q = query.toLowerCase();
   const results = await Promise.all(
-    SEARCH_CATEGORIES.map(async (key) => {
+    KNOWN_CATEGORIES.map(async (key) => {
       try {
         const channels = await fetchM3U(`/categories/${key}.m3u`);
         return channels.filter(

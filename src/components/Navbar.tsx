@@ -3,13 +3,20 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { HiMenu, HiX, HiSearch, HiHome, HiCollection, HiGlobe } from 'react-icons/hi';
+import { HiMenu, HiX, HiSearch, HiHome, HiCollection, HiMoon, HiSun } from 'react-icons/hi';
+import { preloadAllChannels } from '@/lib/client-channels';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isNightMode, setIsNightMode] = useState(true);
+
+  const toggleTheme = () => {
+    setIsNightMode(!isNightMode);
+    document.documentElement.classList.toggle('light-mode');
+  };
 
   const links = [
     { href: '/', label: 'Home', icon: <HiHome size={18} /> },
@@ -32,6 +39,10 @@ export default function Navbar() {
     if (searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
+  };
+
+  const handleSearchFocus = () => {
+    preloadAllChannels();
   };
 
   return (
@@ -70,6 +81,7 @@ export default function Navbar() {
                   placeholder="Search channels..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={handleSearchFocus}
                   className="w-40 lg:w-56 bg-gray-800 text-white text-sm rounded-lg pl-4 pr-9 py-2 border border-gray-700 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/30 transition-all"
                 />
                 <button type="submit" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
@@ -77,6 +89,14 @@ export default function Navbar() {
                 </button>
               </div>
             </form>
+
+            <button
+              onClick={toggleTheme}
+              className="hidden md:flex ml-4 p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-full transition-colors"
+              title="Toggle Night Mode"
+            >
+              {isNightMode ? <HiSun size={20} /> : <HiMoon size={20} />}
+            </button>
 
             <button
               className="md:hidden text-gray-300 hover:text-white p-2"
@@ -111,6 +131,7 @@ export default function Navbar() {
                   placeholder="Search channels..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={handleSearchFocus}
                   className="w-full bg-gray-800 text-white text-sm rounded-lg pl-4 pr-10 py-2.5 border border-gray-700 focus:outline-none focus:border-red-500"
                 />
                 <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -118,11 +139,18 @@ export default function Navbar() {
                 </button>
               </div>
             </form>
+
+            <button
+              onClick={toggleTheme}
+              className="mt-4 w-full flex items-center justify-center gap-2 p-2 bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              {isNightMode ? <><HiSun size={20} /> Switch to Light Mode</> : <><HiMoon size={20} /> Switch to Night Mode</>}
+            </button>
           </div>
         )}
       </nav>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-md border-t border-gray-800 z-50 pb-1 safe-area-bottom">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-md border-t border-gray-800 z-50 pb-1">
         <div className="flex items-center justify-around py-1">
           {mobileNav.map((item) => (
             <Link

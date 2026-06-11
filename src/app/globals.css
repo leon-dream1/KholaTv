@@ -76,3 +76,15 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Global Light Mode Toggle */
+html.light-mode {
+  filter: invert(1) hue-rotate(180deg);
+  background: #fff;
+}
+
+html.light-mode img,
+html.light-mode video,
+html.light-mode svg {
+  filter: invert(1) hue-rotate(180deg);
+}

@@ -23,25 +23,44 @@ export default function VideoPlayer({ url, poster }: Props) {
           enableWorker: true,
           lowLatencyMode: true,
           backBufferLength: 30,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          maxBufferSize: 60 * 1000 * 1000,
-          maxBufferHole: 0.5,
-          highBufferWatchdogPeriod: 2,
-          nudgeOffset: 0.5,
-          nudgeMaxRetry: 5,
-          manifestLoadingTimeOut: 10000,
-          levelLoadingTimeOut: 10000,
-          fragLoadingTimeOut: 10000,
-          startLevel: undefined,
+          maxBufferLength: 10, // Download fewer chunks ahead to prevent connection choking
+          maxMaxBufferLength: 20,
+          maxBufferSize: 30 * 1000 * 1000,
+          maxBufferHole: 2.0, // Super important: skip corrupted/missing chunks quickly instead of buffering
+          liveSyncDurationCount: 3,
+          startLevel: -1,
+          capLevelToPlayerSize: true, // Bandwidth saver: Don't fetch 1080p if player is small
           testBandwidth: true,
-          progressive: false,
+          fragLoadingTimeOut: 15000,
+          manifestLoadingTimeOut: 15000,
+          levelLoadingTimeOut: 15000,
+          fragLoadingMaxRetry: 10,
+          manifestLoadingMaxRetry: 5,
         });
         hls.loadSource(url);
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           video.play().catch(() => {});
+        });
+
+        // Add auto-recovery for network and media errors (reduces buffering/freezing)
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.warn('Network error, trying to recover...');
+                hls?.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.warn('Media error, recovering...');
+                hls?.recoverMediaError();
+                break;
+              default:
+                hls?.destroy();
+                break;
+            }
+          }
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;

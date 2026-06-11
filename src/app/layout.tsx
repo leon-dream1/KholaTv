@@ -29,6 +29,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preconnect" href="https://iptv-org.github.io" />
+        <link rel="dns-prefetch" href="https://iptv-org.github.io" />
+      </head>
       <body className="min-h-full flex flex-col bg-gray-950 text-white">
         <Navbar />
         <main className="flex-1">{children}</main>
